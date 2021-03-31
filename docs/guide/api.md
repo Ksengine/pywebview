@@ -38,7 +38,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 
 ``` python
 webview.start(func=None, args=None, localization={}, gui=None, debug=False, \
-              http_server=False, user_agent=None, block=True)
+              http_server=False, user_agent=None)
 ```
 
 Start a GUI loop and display previously created windows. This function must be called from a main thread.
@@ -50,13 +50,11 @@ Start a GUI loop and display previously created windows. This function must be c
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
 * `http_server` - enable built-in HTTP server. If enabled, local files will be served using a local HTTP server on a random port. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
 * `user_agent` - change user agent string. Not supported in EdgeHTML.
-* `block` - If `False` stops freezing main thread. default is `True`
 
 
 ### Examples
 * [Simple window](/examples/open_url.html)
 * [Multi-window](/examples/multiple_windows.html)
-* [Stop freezing main thread](/examples/noblock.html)
 
 
 ## webview.screens
