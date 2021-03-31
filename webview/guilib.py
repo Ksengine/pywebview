@@ -11,12 +11,9 @@ forced_gui_ = None
 def initialize(forced_gui=None):
     def import_gtk():
         global guilib
-        from webview import _multiprocessing
+
         try:
-            if _multiprocessing:
-                import webview.platforms.mp_gtk as guilib
-            else:
-                import webview.platforms.gtk as guilib
+            import webview.platforms.gtk as guilib
             logger.debug('Using GTK')
 
             return True
@@ -38,12 +35,9 @@ def initialize(forced_gui=None):
 
     def import_cocoa():
         global guilib
-        from webview import _multiprocessing
+
         try:
-            if _multiprocessing:
-                import webview.platforms.mp_cocoa as guilib
-            else:
-                import webview.platforms.cocoa as guilib
+            import webview.platforms.cocoa as guilib
 
             return True
         except ImportError:
