@@ -15,10 +15,10 @@ from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore, Event
 
-from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows, _multiprocessing
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.localization import localization
 from webview.window import Window
-from webview.util import convert_string, default_html, parse_api_js, js_bridge_call, Process
+from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
 
@@ -612,14 +612,8 @@ def create_window(window):
     if window.uid == 'master':
         global _app
         _app = QApplication.instance() or QApplication([])
+
         _create()
-        
-        if _multiprocessing:
-            p = Process()
-            p.exec_ = _app.exec_
-            p.windows = windows
-            return p
-            
         _app.exec_()
     else:
         _main_window_created.wait()
