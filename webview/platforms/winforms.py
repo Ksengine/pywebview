@@ -20,9 +20,9 @@ from uuid import uuid4
 from platform import machine
 import time
 
-from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug, _user_agent, _multiprocessing
+from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug, _user_agent
 from webview.guilib import forced_gui_
-from webview.util import parse_file_type, inject_base_uri, Process
+from webview.util import parse_file_type, inject_base_uri
 from webview.js import alert
 from webview.localization import localization
 from webview.screen import Screen
@@ -434,7 +434,6 @@ def _set_ie_mode():
 _main_window_created = Event()
 _main_window_created.clear()
 
-
 def create_window(window):
     def create():
         browser = BrowserView.BrowserForm(window)
@@ -465,14 +464,7 @@ def create_window(window):
         thread = Thread(ThreadStart(create))
         thread.SetApartmentState(ApartmentState.STA)
         thread.Start()
-        if not _multiprocessing:
-            thread.Join()
-        else:
-            p = Process()
-            p.join = thread.Join
-            p.is_alive = thread.IsAlive
-            p.close = thread.Abort
-            return p
+        thread.Join()
 
     else:
         _main_window_created.wait()
