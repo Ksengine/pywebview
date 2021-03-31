@@ -50,7 +50,6 @@ pywebviewtest test_multi_window.py::test_load_url ${PYTEST_OPTIONS}
 pywebviewtest test_multi_window.py::test_evaluate_js ${PYTEST_OPTIONS}
 pywebviewtest test_multi_window.py::test_js_bridge ${PYTEST_OPTIONS}
 
-pywebviewtest test_noblock.py ${PYTEST_OPTIONS}
 pywebviewtest test_noresize.py ${PYTEST_OPTIONS}
 pywebviewtest test_on_top.py ${PYTEST_OPTIONS}
 pywebviewtest test_set_title.py ${PYTEST_OPTIONS}
