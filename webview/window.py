@@ -4,8 +4,8 @@ import os
 from functools import wraps
 
 from webview.event import Event
-from webview.http_server import start_server
-from webview.util import base_uri, parse_file_type, escape_string, transform_url, make_unicode, WebViewException
+from webview.serving import resolve_url
+from webview.util import base_uri, parse_file_type, escape_string, make_unicode, WebViewException
 from .js import css
 
 
@@ -45,16 +45,17 @@ def _loaded_call(function):
 
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
-                 min_size, hidden, frameless, minimized, confirm_close, background_color,
-                 js_api, text_select):
+                 min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
+                 background_color, js_api, text_select, transparent):
         self.uid = uid
         self.title = make_unicode(title)
-        self.url = None if html else transform_url(url)
+        self.original_url = None if html else url  # original URL provided by user
+        self.real_url = None  # transformed URL for internal HTTP server
         self.html = html
-        self.width = width
-        self.height = height
-        self.x = x
-        self.y = y
+        self.initial_width = width
+        self.initial_height = height
+        self.initial_x = x
+        self.initial_y = y
         self.resizable = resizable
         self.fullscreen = fullscreen
         self.min_size = min_size
@@ -62,27 +63,73 @@ class Window:
         self.background_color = background_color
         self.text_select = text_select
         self.frameless = frameless
+        self.easy_drag = easy_drag
         self.hidden = hidden
+        self.on_top = on_top
         self.minimized = minimized
+        self.transparent = transparent
 
         self._js_api = js_api
         self._functions = {}
 
         self.closed = Event()
-        self.closing = Event()
+        self.closing = Event(True)
         self.loaded = Event()
         self.shown = Event()
 
         self.gui = None
-        self._httpd = None
+        self._is_http_server = False
 
     def _initialize(self, gui, multiprocessing, http_server):
         self.gui = gui
         self.loaded._initialize(multiprocessing)
         self.shown._initialize(multiprocessing)
+        self._is_http_server = http_server
 
-        if http_server and self.url and self.url.startswith('file://'):
-            self.url, self._httpd = start_server(self.url)
+        # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
+        if (
+            gui.renderer == "edgehtml" and
+            self.original_url and
+            isinstance(self.original_url, str) and
+            (self.original_url.startswith('file://') or '://' not in self.original_url)
+        ):
+            self._is_http_server = True
+
+        self.real_url = resolve_url(self.original_url, self._is_http_server)
+
+    @property
+    def width(self):
+        self.shown.wait(15)
+        width, _ = self.gui.get_size(self.uid)
+        return width
+
+    @property
+    def height(self):
+        self.shown.wait(15)
+        _, height = self.gui.get_size(self.uid)
+        return height
+
+    @property
+    def x(self):
+        self.shown.wait(15)
+        x, _ = self.gui.get_position(self.uid)
+        return x
+
+    @property
+    def y(self):
+        self.shown.wait(15)
+        _, y = self.gui.get_position(self.uid)
+        return y
+
+    @property
+    def on_top(self):
+        return self.__on_top
+
+    @on_top.setter
+    def on_top(self, on_top):
+        self.__on_top = on_top
+        if hasattr(self, 'gui') and self.gui != None:
+            self.gui.set_on_top(self.uid, on_top)
 
     @_loaded_call
     def get_elements(self, selector):
@@ -93,6 +140,7 @@ class Window:
         code = """
             var elements = document.querySelectorAll('%s');
             var serializedElements = [];
+
             for (var i = 0; i < elements.length; i++) {
                 var node = pywebview.domJSON.toJSON(elements[i], {
                     metadata: false,
@@ -100,6 +148,7 @@ class Window:
                 });
                 serializedElements.push(node);
             }
+
             serializedElements;
         """ % selector
 
@@ -113,16 +162,10 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        if self._httpd:
-            self._httpd.shutdown()
-            self._httpd = None
+        self.url = url
+        self.real_url = resolve_url(url, self._is_http_server or self.gui.renderer == 'edgehtml')
 
-        url = transform_url(url)
-
-        if (self._httpd or self.gui.renderer == 'edgehtml') and url.startswith('file://'):
-            url, self._httpd = start_server(url)
-
-        self.gui.load_url(url, self.uid)
+        self.gui.load_url(self.real_url, self.uid)
 
     @_shown_call
     def load_html(self, content, base_uri=base_uri()):
@@ -133,9 +176,6 @@ class Window:
         :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
         :param uid: uid of the target instance
         """
-
-        if self._httpd:
-            self._httpd.shutdown()
 
         content = make_unicode(content)
         self.gui.load_html(content, base_uri, self.uid)
@@ -227,8 +267,6 @@ class Window:
         :param x: desired x coordinate of target window
         :param y: desired y coordinate of target window
         """
-        self.x = x
-        self.y = y
         self.gui.move(x, y, self.uid)
 
     @_loaded_call
@@ -274,7 +312,11 @@ class Window:
             name = func.__name__
             self._functions[name] = func
 
-            params = list(inspect.getfullargspec(func).args)
+            try:
+                params = list(inspect.getfullargspec(func).args) # Python 3
+            except AttributeError:
+                params = list(inspect.getargspec(func).args)  # Python 2
+
 
             func_list.append({
                 'func': name,
