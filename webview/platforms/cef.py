@@ -14,7 +14,7 @@ from copy import copy
 from time import sleep
 
 from webview.js.css import disable_text_select
-from webview.js import dom
+from webview.js import dom, zoomable
 from webview import _debug, _user_agent
 from webview.util import parse_api_js, default_html, js_bridge_call
 
@@ -82,6 +82,7 @@ class Browser:
         self.handle = handle
         self.browser = browser
         self.text_select = window.text_select
+        self.zoomable = window.zoomable
         self.uid = window.uid
         self.loaded = window.loaded
         self.shown = window.shown
@@ -99,6 +100,9 @@ class Browser:
 
         if not self.text_select:
             self.browser.ExecuteJavascript(disable_text_select)
+
+        if not self.zoomable:
+            self.browser.ExecuteJavascript(zoomable.src)
 
         self.browser.ExecuteJavascript(dom.src)
 
