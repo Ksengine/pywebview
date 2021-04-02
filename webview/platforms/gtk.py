@@ -19,6 +19,7 @@ from webview.localization import localization
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
+from webview.js import zoomable
 from webview.screen import Screen
 
 logger = logging.getLogger('pywebview')
@@ -402,6 +403,8 @@ class BrowserView:
 
     def _set_js_api(self):
         def create_bridge():
+            if !self.pywebview_window.zoomable:
+                self.webview.run_javascript(zoomable.src)
             self.webview.run_javascript(parse_api_js(self.js_bridge.window, 'gtk', uid=self.js_bridge.uid))
             self.loaded.set()
 
